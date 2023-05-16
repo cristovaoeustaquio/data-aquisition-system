@@ -3,8 +3,36 @@
 #include <memory>
 #include <utility>
 #include <boost/asio.hpp>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 
 using boost::asio::ip::tcp;
+
+#pragma pack(push, 1)
+struct LogRecord {
+    char sensor_id[32]; // supondo um ID de sensor de até 32 caracteres
+    std::time_t timestamp; // timestamp UNIX
+    double value; // valor da leitura
+};
+#pragma pack(pop)
+
+std::time_t string_to_time_t(const std::string& time_string) {
+    std::tm tm = {};
+    std::istringstream ss(time_string);
+    ss >> std::get_time(&tm, "%Y-%m-%dT%H:%M:%S");
+    return std::mktime(&tm);
+}
+
+std::string time_t_to_string(std::time_t time) {
+    std::tm* tm = std::localtime(&time);
+    std::ostringstream ss;
+    ss << std::put_time(tm, "%Y-%m-%dT%H:%M:%S");
+    return ss.str();
+}
 
 class session
   : public std::enable_shared_from_this<session>
@@ -21,17 +49,12 @@ public:
   }
 
 private:
-  void split()
-  {
-
-  }
   bool starts_with(const std::string &str, const std::string &prefix)
   {
     if (prefix.length() > str.length())
     {
         return false; // Prefix is longer than the string, so it can't be a prefix.
     }
-
     // Compare the first 'prefix.length()' characters of 'str' with 'prefix'.
     return str.compare(0, prefix.length(), prefix) == 0;
   }
@@ -45,10 +68,17 @@ private:
           {
             std::istream is(&buffer_);
             std::string message(std::istreambuf_iterator<char>(is), {});
-            if(starts_with(LOG)){
-
+            if (starts_with(message, "LOG"))
+            {
+                std::vector<std::string> parts;
+                // Split the string using the comma delimiter
+                boost::split(parts, message, boost::is_any_of("|"));
+                for (const std::string &part : parts)
+                {
+                    std::cout << part << std::endl;
+                }
             }
-            else if(starts_with(GET)){
+            else if(starts_with(message, "GET")){
                 
             }
             std::cout << "Received: " << message << std::endl;
