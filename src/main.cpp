@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
+#include <fstream>
 
 using boost::asio::ip::tcp;
 
@@ -73,6 +74,13 @@ private:
                 std::vector<std::string> parts;
                 // Split the string using the comma delimiter
                 boost::split(parts, message, boost::is_any_of("|"));
+                std::fstream file(parts[1]+".dat", std::fstream::out | std::fstream::in | std::fstream::binary | std::fstream::app);
+                if(file.is_open())
+                {
+                    LogRecord log;
+                    memcpy(log.sensor_id, &parts[1], 32);
+                    memcpy(&log.timestamp, &string_to_time_t(parts[2]),sizeof(timestamp)); // mudar
+                }
                 for (const std::string &part : parts)
                 {
                     std::cout << part << std::endl;
