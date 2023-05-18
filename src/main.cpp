@@ -78,8 +78,11 @@ private:
                 if(file.is_open())
                 {
                     LogRecord log;
-                    memcpy(log.sensor_id, &parts[1], 32);
-                    memcpy(&log.timestamp, &string_to_time_t(parts[2]),sizeof(timestamp)); // mudar
+                    std::strcpy(log.sensor_id, parts[1].c_str());
+                    log.timestamp = string_to_time_t(parts[2]);
+                    log.value = std::stod(parts[3]);
+                    file.write((char*)&log, sizeof(LogRecord));
+                    file.close();
                 }
                 for (const std::string &part : parts)
                 {
