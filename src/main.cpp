@@ -69,6 +69,7 @@ private:
           {
             std::istream is(&buffer_);
             std::string message(std::istreambuf_iterator<char>(is), {});
+            std::string message_srv(std::istreambuf_iterator<char>(is), {});
             if (starts_with(message, "LOG"))
             {
                 std::vector<std::string> parts;
@@ -89,11 +90,31 @@ private:
                     std::cout << part << std::endl;
                 }
             }
-            else if(starts_with(message, "GET")){
-                
+            else if (starts_with(message, "GET"))
+            {
+                std::cout << "Entrou no GET " << std::endl;
+                std::vector<std::string> parts;
+                // Split the string using the comma delimiter
+                boost::split(parts, message, boost::is_any_of("|"));
+                std::fstream file(parts[1] + ".dat", std::fstream::binary);
+                if (file.is_open())
+                {
+                    std::cout << "Entrou no file " << std::endl;
+                    int file_size = file.tellg();
+                    int n = file_size / sizeof(LogRecord);
+                    
+                    LogRecord log;
+                    file.read((char *)&log, sizeof(LogRecord));
+                }
+                else
+                {
+                  std::cout << "Entrou else " << std::endl;
+                  message_srv = "ERROR|INVALID_SENSOR_ID\r\n";
+                  write_message(message_srv);
+                }
             }
             std::cout << "Received: " << message << std::endl;
-            write_message(message);
+            //write_message(message);
           }
         });
   }
