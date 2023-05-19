@@ -89,6 +89,7 @@ private:
                 {
                     std::cout << part << std::endl;
                 }
+                read_message(); //para nao fechar a conexao
             }
             else if (starts_with(message, "GET"))
             {
@@ -96,15 +97,31 @@ private:
                 std::vector<std::string> parts;
                 // Split the string using the comma delimiter
                 boost::split(parts, message, boost::is_any_of("|"));
-                std::fstream file(parts[1] + ".dat", std::fstream::binary);
+                std::fstream file(parts[1]+".dat", std::fstream::in | std::fstream::binary);
                 if (file.is_open())
                 {
                     std::cout << "Entrou no file " << std::endl;
+                    file.seekp(0,std::ios_base::end);
                     int file_size = file.tellg();
-                    int n = file_size / sizeof(LogRecord);
-                    
+                    int num_reg_total = file_size / sizeof(LogRecord);
+                    int num_reg_request = std::stoi(parts[2]);
                     LogRecord log;
-                    file.read((char *)&log, sizeof(LogRecord));
+                    std::cout << "file: "<< num_reg_total << std::endl;
+                    if(num_reg_request > num_reg_total)
+                    {
+                      num_reg_request = num_reg_total;
+                    }
+                    file.seekp((num_reg_request)*sizeof(LogRecord), std::ios_base::end);
+                    message_srv = std::to_string(num_reg_request);
+                    for(int i = 0; i < num_reg_request; i++)
+                    {
+                      file.read((char *)&log, sizeof(LogRecord));
+                      message_srv += ";" + time_t_to_string(log.timestamp) + "|" + std::to_string(log.value);
+                    }
+                    message_srv += "\r\n";
+                    
+                    std::cout << "RESULT: " + message_srv << std::endl;
+                    write_message(message_srv);
                 }
                 else
                 {
