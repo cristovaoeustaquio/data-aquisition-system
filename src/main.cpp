@@ -88,10 +88,6 @@ private:
                     file.write((char*)&log, sizeof(LogRecord));
                     file.close();
                 }
-                for (const std::string &part : parts)
-                {
-                    std::cout << part << std::endl;
-                }
                 read_message(); //para nao fechar a conexao
             }
             else if (starts_with(message, "GET"))
