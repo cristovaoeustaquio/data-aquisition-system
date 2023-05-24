@@ -10,7 +10,9 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
+#include <mutex>
 
+std::mutex file_mutex;
 using boost::asio::ip::tcp;
 
 #pragma pack(push, 1)
@@ -72,8 +74,9 @@ private:
             std::string message_srv(std::istreambuf_iterator<char>(is), {});
             if (starts_with(message, "LOG"))
             {
+                std::lock_guard<std::mutex> lock(file_mutex);
                 std::vector<std::string> parts;
-                // Split the string using the comma delimiter
+                // Split the string using the pipe delimiter
                 boost::split(parts, message, boost::is_any_of("|"));
                 std::fstream file(parts[1]+".dat", std::fstream::out | std::fstream::in | std::fstream::binary | std::fstream::app);
                 if(file.is_open())
@@ -93,23 +96,23 @@ private:
             }
             else if (starts_with(message, "GET"))
             {
+                std::lock_guard<std::mutex> lock(file_mutex);
                 std::vector<std::string> parts;
-                // Split the string using the pipe delimiter
                 boost::split(parts, message, boost::is_any_of("|"));
                 std::fstream file(parts[1]+".dat", std::fstream::in | std::fstream::binary);
                 if (file.is_open())
                 {
-                  std::cout << "Entrou no file " << std::endl;
                   file.seekg(0, std::ios_base::end);
                   int file_size = file.tellg();
                   int num_reg_total = file_size / sizeof(LogRecord);
                   int num_reg_request = std::stoi(parts[2]);
                   LogRecord log;
-                  std::cout << "file: " << num_reg_total << std::endl;
+                  std::cout << "numero total de registros no arquivo: " << num_reg_total << std::endl;
                   if (num_reg_request > num_reg_total)
                   {
                     num_reg_request = num_reg_total;
                   }
+                  // Calcula a posição a partir da qual os N últimos registros serão lidos
                   int start_pos = file_size - (num_reg_request * sizeof(LogRecord));
                   file.seekg(start_pos);
                   message_srv = std::to_string(num_reg_request);
@@ -121,7 +124,6 @@ private:
                   message_srv += "\r\n";
                   file.close();
 
-                  std::cout << "RESULT: " + message_srv << std::endl;
                   write_message(message_srv);
                 }
                 else
